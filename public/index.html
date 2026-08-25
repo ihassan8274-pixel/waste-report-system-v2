@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام محضر الهالك الاحترافي</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Noto Kufi Arabic','Segoe UI',sans-serif; background:#f4f1e8; color:#1a1a1a; }
+button { font-family:'Noto Kufi Arabic',sans-serif; cursor:pointer; border:none; }
+input, select, textarea { font-family:'Noto Kufi Arabic',sans-serif; }
+
+/* ===== LOGIN ===== */
+#loginView { min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#2a2105 0%,#5a4408 55%,#d4a017 130%); padding:20px; }
+.login-card { background:#fff; border-radius:20px; padding:40px 36px; width:100%; max-width:400px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45); text-align:center; border-top:6px solid #d4a017; }
+.login-card .brand-icon { font-size:52px; display:block; margin-bottom:8px; }
+.login-card h1 { font-size:24px; color:#4a360a; font-weight:900; margin-bottom:4px; }
+.login-card .sub { color:#8a7a3a; font-size:13px; margin-bottom:26px; }
+.login-card label { display:block; text-align:right; font-weight:700; font-size:13px; color:#5a4a10; margin:14px 0 6px; }
+.login-card input { width:100%; padding:12px 14px; border:2px solid #e8dcb0; border-radius:10px;
+  font-size:14px; outline:none; transition:.2s; background:#fffdf6; }
+.login-card input:focus { border-color:#d4a017; box-shadow:0 0 0 3px rgba(212,160,23,.18); }
+.login-card .btn-login { width:100%; margin-top:22px; padding:13px; background:linear-gradient(135deg,#e8b923,#a47b0e);
+  color:#fff; border-radius:12px; font-size:16px; font-weight:800; box-shadow:0 4px 14px rgba(164,123,14,.4); transition:.2s; }
+.login-card .btn-login:hover { transform:translateY(-2px); }
+.login-error { color:#c82333; font-size:13px; margin-top:12px; min-height:18px; font-weight:600; }
+.login-hint { margin-top:18px; padding:10px; background:#fff9e6; border:1px dashed #e0c060; border-radius:10px;
+  font-size:11px; color:#8a7a3a; line-height:1.8; }
+
+/* ===== APP LAYOUT ===== */
+#appView { display:none; min-height:100vh; }
+.sidebar { position:fixed; right:0; top:0; width:240px; height:100vh; background:#2a2105;
+  color:#fff; padding:18px 0; overflow-y:auto; z-index:100; }
+.sidebar .brand { text-align:center; padding:10px 14px 18px; border-bottom:1px solid rgba(255,255,255,.12); }
+.sidebar .brand h2 { font-size:17px; font-weight:900; color:#f3d87a; }
+.sidebar .brand span { font-size:11px; color:#b7a86b; }
+.sidebar nav { padding-top:10px; }
+.sidebar nav a { display:flex; align-items:center; gap:11px; padding:12px 22px; color:#d8cc9e;
+  text-decoration:none; font-size:13px; font-weight:700; transition:.18s; border-right:4px solid transparent; }
+.sidebar nav a:hover { background:rgba(212,160,23,.14); color:#fff; }
+.sidebar nav a.active { background:linear-gradient(90deg,rgba(212,160,23,.28),rgba(212,160,23,.05));
+  color:#f3d87a; border-right-color:#d4a017; }
+.main { margin-right:240px; min-height:100vh; display:flex; flex-direction:column; }
+.topbar { background:#fff; padding:14px 26px; display:flex; align-items:center; gap:14px;
+  border-bottom:2px solid #ecd98a; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+.topbar .page-title { font-size:19px; font-weight:900; color:#4a360a; }
+.topbar .spacer { flex:1; }
+.topbar .user-chip { display:flex; align-items:center; gap:9px; background:#fff9e6; border:2px solid #ecd98a;
+  padding:6px 14px; border-radius:30px; font-size:12px; font-weight:700; color:#5a4a10; }
+.topbar .role-badge { background:#d4a017; color:#fff; font-size:10px; padding:2px 10px; border-radius:20px; }
+.btn-logout { background:#e05767; color:#fff; padding:8px 16px; border-radius:10px; font-weight:700; font-size:12px; transition:.2s; }
+.btn-logout:hover { background:#c82333; }
+.content { padding:22px 26px; flex:1; }
+
+/* ===== CARDS / TOOLBAR ===== */
+.card { background:#fff; border-radius:14px; box-shadow:0 4px 16px rgba(90,70,16,.08); border:2px solid #ece3c0; }
+.card-h { padding:16px 20px; border-bottom:2px solid #f0e8cd; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.card-h h3 { font-size:16px; font-weight:900; color:#4a360a; flex:1; }
+.card-b { padding:18px 20px; }
+.toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.btn { padding:10px 18px; border-radius:10px; font-weight:800; font-size:13px; display:inline-flex; align-items:center; gap:7px;
+  transition:.2s; box-shadow:0 2px 7px rgba(0,0,0,.12); }
+.btn:hover { transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,.18); }
+.btn-gold { background:linear-gradient(135deg,#e8b923,#a47b0e); color:#fff; }
+.btn-green { background:linear-gradient(135deg,#33c05a,#218838); color:#fff; }
+.btn-red { background:linear-gradient(135deg,#e05767,#c82333); color:#fff; }
+.btn-blue { background:linear-gradient(135deg,#22b8d4,#138496); color:#fff; }
+.btn-gray { background:linear-gradient(135deg,#6c757d,#495057); color:#fff; }
+.btn-sm { padding:6px 12px; font-size:11px; }
+.btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+/* ===== STATS CARDS ===== */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px; }
+.stat-card { background:linear-gradient(135deg,#fdf0c8,#fffcf0); border:2px solid #e0c060; border-radius:14px;
+  padding:16px; text-align:center; }
+.stat-card .val { font-size:26px; font-weight:900; color:#5a4a10; }
+.stat-card .lbl { font-size:12px; color:#8a7a3a; font-weight:700; margin-top:3px; }
+.stat-card.green { background:linear-gradient(135deg,#e2f8e8,#f0fbf3); border-color:#7ddb96; }
+.stat-card.green .val { color:#1f7a33; }
+
+/* ===== CHARTS ===== */
+.charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.chart-box { background:#fff; border-radius:14px; border:2px solid #ece3c0; padding:16px; }
+.chart-box h4 { font-size:14px; font-weight:900; color:#4a360a; margin-bottom:10px; }
+.chart-box.full { grid-column:1 / -1; }
+.chart-box canvas { max-height:300px; }
+
+/* ===== TABLES ===== */
+.table-wrap { overflow-x:auto; border-radius:10px; border:2px solid #FFE082; }
+table { width:100%; border-collapse:collapse; font-size:12px; min-width:600px; }
+thead { background:#FFFC17; color:#5a4408; }
+th { padding:10px 8px; text-align:center; font-weight:800; white-space:nowrap; }
+td { padding:8px 6px; text-align:center; border-bottom:1px solid #f0ead6; }
+tbody tr:nth-child(even) td { background:#fffaf0; }
+tbody tr:hover td { background:#fff3c4; }
+td input, td select { width:100%; padding:6px; border:1px solid #e0c060; border-radius:7px; font-size:12px; background:#fffdf6; text-align:center; }
+td input:focus, td select:focus { border-color:#d4a017; outline:none; background:#fff6d8; }
+.chip { display:inline-block; padding:3px 12px; border-radius:20px; font-size:11px; font-weight:800; }
+.chip-draft { background:#fff3c4; color:#8b6914; }
+.chip-approved { background:#d4edda; color:#1f7a33; }
+
+/* ===== FORM / VOUCHER ===== */
+.voucher { background:#fff; border-radius:16px; border:3px solid #FFFC17; padding:24px 26px; box-shadow:0 10px 30px rgba(255,252,23,.3); }
+.voucher .hdr { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;
+  border-bottom:4px solid #FFFC17; padding-bottom:14px; margin-bottom:16px; }
+.voucher .brand { display:flex; align-items:center; gap:12px; }
+.voucher .logo { width:62px; height:62px; object-fit:contain; }
+.voucher .company h1 { font-size:22px; font-weight:900; color:#4a360a; }
+.voucher .company h2 { font-size:12px; color:#8a7a3a; font-weight:400; }
+.voucher .vtitle { background:#FFFC17; color:#5a4408; padding:9px 26px; border-radius:40px;
+  font-weight:800; font-size:16px; border:2px solid #E6C200; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 26px; background:#FFFDE7; padding:14px 18px;
+  border-radius:12px; margin-bottom:14px; border:2px solid #FFE082; }
+.info-item { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; padding:3px 0; }
+.info-item .label { font-weight:700; color:#5a4a10; min-width:100px; font-size:13px; }
+.info-item input, .info-item select { font-weight:500; color:#5a4508; border:none; border-bottom:2px solid #e0c060;
+  background:transparent; padding:3px 6px; font-size:13px; min-width:130px; outline:none; transition:.3s; }
+.info-item input:focus, .info-item select:focus { border-bottom-color:#d4a017; background:#fff3c4; border-radius:4px 4px 0 0; }
+.serial-badge { font-weight:900; color:#5a4408; background:linear-gradient(135deg,#FFF8D6,#FFFDE7);
+  border:2px solid #FFFC17; padding:2px 16px; border-radius:20px; font-size:14px; }
+.form-totals { display:flex; justify-content:flex-end; margin:6px 0 4px; }
+.form-totals span { background:#FFFC17; color:#5a4408; padding:6px 26px; border-radius:30px;
+  font-weight:800; font-size:15px; border:2px solid #E6C200; }
+.notes-box { background:#FFFDE7; padding:12px 16px; border-radius:10px; margin:12px 0; border:2px solid #FFE082;
+  border-right:6px solid #FFFC17; }
+.notes-box textarea { width:100%; padding:8px; border:1px solid #ecd98a; border-radius:8px; font-size:12px;
+  background:#fff; resize:vertical; min-height:55px; }
+.sig-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px; }
+.sig-item { background:#FFFDE7; padding:12px; border-radius:12px; text-align:center; border:2px solid #FFE082; }
+.sig-item .role { font-weight:800; color:#5a4a10; font-size:12px; display:block; margin-bottom:8px; border-bottom:2px solid #e0c060; padding-bottom:5px; }
+.sig-item input { width:100%; padding:5px; border:none; border-bottom:2px solid #e0c060; background:transparent;
+  text-align:center; outline:none; font-size:12px; margin:2px 0; }
+.sig-item.approved { border:3px solid #FFFC17; background:linear-gradient(135deg,#FFF8D6,#FFFDE7); }
+
+/* ===== MODALS ===== */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(50,36,5,.55); backdrop-filter:blur(3px);
+  z-index:999; justify-content:center; align-items:center; padding:16px; }
+.modal-overlay.active { display:flex; }
+.modal { background:#fff; border-radius:16px; width:100%; max-width:680px; max-height:92vh; overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.4); border-top:6px solid #d4a017; }
+.modal-h { padding:16px 20px; border-bottom:2px solid #f0e8cd; display:flex; align-items:center; }
+.modal-h h3 { font-weight:900; color:#4a360a; flex:1; font-size:16px; }
+.modal-x { background:#e05767; color:#fff; width:30px; height:30px; border-radius:50%; font-size:14px; font-weight:800; }
+.modal-b { padding:20px; }
+
+/* ===== LOADING ===== */
+.loading { text-align:center; padding:40px; color:#8a7a3a; font-size:14px; }
+.spinner { width:40px; height:40px; border:5px solid rgba(212,160,23,.2); border-top:5px solid #d4a017;
+  border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 14px; }
+@keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+/* ===== TOAST ===== */
+#toast { position:fixed; bottom:20px; right:50%; transform:translateX(50%) translateY(120px); background:#2a2105;
+  color:#f3d87a; padding:13px 26px; border-radius:12px; font-weight:700; font-size:13px; z-index:9999;
+  box-shadow:0 8px 24px rgba(0,0,0,.4); transition:.35s; opacity:0; }
+#toast.show { transform:translateX(50%) translateY(0); opacity:1; }
+#toast.err { background:#c82333; color:#fff; }
+
+.hidden { display:none !important; }
+.muted { color:#8a7a3a; }
+@media (max-width:900px){
+  .sidebar { width:200px; }
+  .main { margin-right:200px; }
+  .charts-grid { grid-template-columns:1fr; }
+  .info-grid, .sig-grid { grid-template-columns:1fr; }
+  .stats-grid { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+}
+@media (max-width:640px){
+  /* sidebar -> fixed BOTTOM tab bar (mobile app style) */
+  .sidebar { position:fixed; top:auto; bottom:0; right:0; left:0; width:100%; height:auto; padding:4px 0 calc(4px + env(safe-area-inset-bottom));
+    display:block; overflow:hidden; border-top:3px solid #d4a017; box-shadow:0 -5px 16px rgba(0,0,0,.35); z-index:200; }
+  .sidebar .brand { display:none; }
+  .sidebar nav { display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:0; scrollbar-width:none; }
+  .sidebar nav::-webkit-scrollbar { display:none; }
+  .sidebar nav a { white-space:nowrap; padding:12px 17px; border-right:none; border-top:3px solid transparent; border-bottom:none;
+    font-size:12px; min-height:44px; justify-content:center; background:rgba(212,160,23,.06); }
+  .sidebar nav a.active { border-right:none; border-top-color:#d4a017; background:rgba(212,160,23,.16); }
+  .main { margin-right:0; }
+  .topbar { padding:9px 12px; gap:8px; flex-wrap:wrap; }
+  .topbar .page-title { font-size:15px; }
+  .topbar .user-chip { padding:4px 11px; font-size:11px; }
+  .topbar .role-badge { display:none; }
+  .btn-logout { padding:7px 12px; font-size:11px; min-height:34px; }
+  .content { padding:11px 11px calc(68px + env(safe-area-inset-bottom)); }
+  /* touch friendly */
+  .btn { min-height:44px; padding:11px 16px; font-size:13px; touch-action:manipulation; }
+  .btn-sm { min-height:34px; padding:6px 10px; }
+  .modal-x { width:36px; height:36px; font-size:16px; }
+  /* 16px inputs prevent iOS auto-zoom */
+  input, select, textarea { font-size:16px; }
+  td input, td select, .info-item input, .info-item select, .sig-item input { font-size:16px; }
+  /* toolbars -> stacked buttons */
+  .toolbar { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .toolbar .muted { grid-column:1 / -1; text-align:center; align-self:center; }
+  .toolbar button { width:100%; justify-content:center; }
+  .voucher { padding:12px 10px; }
+  .voucher .hdr { justify-content:center; text-align:center; }
+  .voucher .vtitle { font-size:14px; padding:8px 16px; }
+  .info-grid { grid-template-columns:1fr; padding:10px 12px; }
+  .info-item { flex-direction:column; gap:3px; }
+  .info-item .label { min-width:0; }
+  .info-item input, .info-item select { width:100%; min-width:0; padding:8px 6px; }
+  .form-totals span { font-size:14px; padding:7px 16px; }
+  .notes-box textarea { font-size:16px; min-height:70px; }
+  .sig-grid { grid-template-columns:1fr; gap:10px; }
+  .login-card { padding:26px 18px; }
+  .stats-grid { grid-template-columns:repeat(2,1fr); gap:9px; }
+  .stat-card .val { font-size:21px; }
+  .modal { max-width:100%; }
+  .modal-h { padding:12px 14px; }
+  .modal-b { padding:14px; }
+  .table-wrap { -webkit-overflow-scrolling:touch; }
+}
+@media (max-width:420px){
+  .stats-grid { grid-template-columns:1fr 1fr; gap:8px; }
+  .toolbar { grid-template-columns:1fr; }
+  .topbar .user-chip span:first-child { max-width:85px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
+
+/* ===== PRINT / PDF ===== */
+#printArea { display:none; }
+.permissions-table input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+.permissions-table label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  html, body { margin:0 !important; padding:0 !important; background:#fff !important; }
+  body > *:not(#printArea) { display:none !important; }
+  #printArea { display:block !important; position:static !important; width:210mm !important; max-width:none !important; padding:0 !important; margin:0 !important; }
+  #printArea .voucher { width:210mm !important; margin:0 !important; box-shadow:none !important; border-radius:0 !important; border:2px solid #FFFC17; padding:8mm 8mm !important; }
+  #printArea .hdr { border-bottom:3px solid #FFFC17; margin-bottom:6mm; }
+  #printArea .vtitle { font-size:15px; }
+  #printArea table { font-size:10.5px; }
+  #printArea .info-grid, #printArea .notes-box, #printArea .sig-grid { page-break-inside: avoid; }
+  #printArea table tr { page-break-inside: avoid; }
+  #printArea .logo { width:18mm; height:18mm; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginView">
+  <div class="login-card">
+    <span class="brand-icon">📋</span>
+    <h1>نظام محضر الهالك</h1>
+    <div class="sub" id="loginCompany">إدارة المحاضر وتسجيل الهالك</div>
+    <label>اسم المستخدم</label>
+    <input type="text" id="loginUser" autocomplete="username" placeholder="admin">
+    <label>كلمة المرور</label>
+    <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••">
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" onclick="doLogin()">تسجيل الدخول</button>
+    <div class="login-hint">🔑 البيانات الافتراضية:<br>المستخدم: <b>admin</b> | كلمة المرور: <b>admin123</b><br>غيّرها من الإعدادات بعد الدخول</div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="appView">
+  <aside class="sidebar">
+    <div class="brand">
+      <h2 id="sideCompany">نظام محضر الهالك</h2>
+      <span>شركة مطاعم معصوب حليب</span>
+    </div>
+    <nav id="sideNav"></nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">لوحة التحكم</div>
+      <div class="spacer"></div>
+      <div class="user-chip"><span id="userName">—</span><span class="role-badge" id="userRole">—</span></div>
+      <button class="btn-logout" onclick="doLogout()">🚪 خروج</button>
+    </div>
+    <div class="content">
+      <div id="viewDashboard" class="view"></div>
+      <div id="viewForm" class="view hidden"></div>
+      <div id="viewReports" class="view hidden"></div>
+      <div id="viewItems" class="view hidden"></div>
+      <div id="viewBranches" class="view hidden"></div>
+      <div id="viewUsers" class="view hidden"></div>
+      <div id="viewPermissions" class="view hidden"></div>
+      <div id="viewSettings" class="view hidden"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+<div class="modal-overlay" id="modalViewReport"><div class="modal"><div class="modal-h"><h3>عرض المحضر</h3><button class="modal-x" onclick="closeModal('modalViewReport')">✕</button></div><div class="modal-b" id="viewReportBody"></div></div></div>
+<div class="modal-overlay" id="modalEditReport"><div class="modal"><div class="modal-h"><h3>تعديل المحضر</h3><button class="modal-x" onclick="closeModal('modalEditReport')">✕</button></div><div class="modal-b" id="editReportBody"></div></div></div>
+<div class="modal-overlay" id="modalItem"><div class="modal"><div class="modal-h"><h3 id="itemModalTitle">صنف</h3><button class="modal-x" onclick="closeModal('modalItem')">✕</button></div><div class="modal-b" id="itemModalBody"></div></div></div>
+<div class="modal-overlay" id="modalBranch"><div class="modal"><div class="modal-h"><h3 id="branchModalTitle">فرع</h3><button class="modal-x" onclick="closeModal('modalBranch')">✕</button></div><div class="modal-b" id="branchModalBody"></div></div></div>
+<div class="modal-overlay" id="modalUser"><div class="modal"><div class="modal-h"><h3 id="userModalTitle">مستخدم</h3><button class="modal-x" onclick="closeModal('modalUser')">✕</button></div><div class="modal-b" id="userModalBody"></div></div></div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= STATE ================= */
+const state = { token: localStorage.getItem('wasteToken') || null, user: null, branches: [], items: [], permissions: {} };
+let charts = {};
+
+function toast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(() => t.className = '', 3200);
+}
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
+  const res = await fetch(path, { ...opts, headers });
+  if (res.status === 401) { doLogout(true); throw new Error('انتهت الجلسة'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'خطأ في الطلب');
+  return data;
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+/* ================= AUTH ================= */
+function doLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  document.getElementById('loginError').textContent = '';
+  api('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) })
+    .then(data => {
+      state.token = data.token; state.user = data.user;
+      localStorage.setItem('wasteToken', state.token);
+      enterApp();
+    })
+    .catch(e => document.getElementById('loginError').textContent = e.message);
+}
+function doLogout(silent) {
+  if (state.token) fetch('/api/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + state.token } }).catch(() => {});
+  state.token = null; state.user = null;
+  localStorage.removeItem('wasteToken');
+  if (!silent) toast('تم تسجيل الخروج', true);
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('loginView').style.display = 'flex';
+}
+
+/* ================= ROUTING ================= */
+const ROLE_LABEL = { admin: 'مدير النظام', manager: 'مدير فرع', employee: 'موظف' };
+const PAGES = [
+  { id: 'dashboard', label: '📊 لوحة التحكم', perm: 'dashboard.view', title: 'لوحة التحكم' },
+  { id: 'form', label: '📋 نموذج محضر هالك', perm: 'reports.create', title: 'نموذج محضر هالك' },
+  { id: 'reports', label: '🗂️ سجل المحاضر', perm: 'reports.read', title: 'سجل المحاضر' },
+  { id: 'items', label: '🧺 الأصناف', perm: 'items.read', title: 'الأصناف' },
+  { id: 'branches', label: '🏢 الفروع', perm: 'branches.read', title: 'الفروع' },
+  { id: 'users', label: '👥 المستخدمين', perm: 'users.read', title: 'المستخدمين' },
+  { id: 'permissions', label: '🔐 الصلاحيات', perm: 'permissions.read', title: 'الصلاحيات' },
+  { id: 'settings', label: '⚙️ الإعدادات', perm: 'settings.read', title: 'الإعدادات' }
+];
+let currentPage = 'dashboard';
+
+function hasPermission(module, action) {
+  if (!state.permissions) return false;
+  return state.permissions[module]?.[action] === true;
+}
+
+function buildNav() {
+  const nav = document.getElementById('sideNav');
+  nav.innerHTML = '';
+  PAGES.filter(p => {
+    const [module, action] = p.perm.split('.');
+    return hasPermission(module, action);
+  }).forEach(p => {
+    const a = document.createElement('a');
+    a.href = '#';
+    a.id = 'nav-' + p.id;
+    a.textContent = p.label;
+    a.onclick = e => { e.preventDefault(); showPage(p.id); };
+    nav.appendChild(a);
+  });
+}
+function showPage(id) {
+  currentPage = id;
+  const page = PAGES.find(p => p.id === id);
+  if (!page) { id = 'dashboard'; }
+  else {
+    const [module, action] = page.perm.split('.');
+    if (!hasPermission(module, action)) id = 'dashboard';
+  }
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  document.getElementById('view' + id.charAt(0).toUpperCase() + id.slice(1)).classList.remove('hidden');
+  document.querySelectorAll('#sideNav a').forEach(a => a.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + id);
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('pageTitle').textContent = PAGES.find(p => p.id === id).title;
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'form') initFormView();
+  if (id === 'reports') loadReports();
+  if (id === 'items') loadItems();
+  if (id === 'branches') loadBranches();
+  if (id === 'users') loadUsers();
+  if (id === 'permissions') loadPermissions();
+  if (id === 'settings') loadSettings();
+}
+
+async function enterApp() {
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('appView').style.display = 'flex';
+  document.getElementById('userName').textContent = state.user.name;
+  document.getElementById('userRole').textContent = ROLE_LABEL[state.user.role] || state.user.role;
+  state.permissions = state.user.permissions || {};
+  try {
+    if (hasPermission('branches', 'read')) {
+      const b = await api('/api/branches'); state.branches = b.branches;
+    }
+    if (hasPermission('items', 'read')) {
+      const i = await api('/api/items'); state.items = i.items;
+    }
+  } catch (e) {}
+  buildNav();
+  showPage('dashboard');
+}
+
+/* ================= DASHBOARD ================= */
+function loadDashboard() {
+  const v = document.getElementById('viewDashboard');
+  v.innerHTML = '<div class="loading"><div class="spinner"></div>جاري تحميل البيانات...</div>';
+  const from = document.getElementById('dashFrom') ? document.getElementById('dashFrom').value : '';
+  const to = document.getElementById('dashTo') ? document.getElementById('dashTo').value : '';
+  const branch = document.getElementById('dashBranch') ? document.getElementById('dashBranch').value : '';
+  let url = '/api/stats?';
+  if (from) url += 'from=' + from + '&';
+  if (to) url += 'to=' + to + '&';
+  if (branch) url += 'branch=' + branch + '&';
+  api(url).then(s => renderDashboard(v, s));
+}
+
+function monthKey(d) { return d; }
+
+function renderDashboard(v, s) {
+  const t = s.totals;
+  const branchOpts = '<option value="">كل الفروع</option>' + state.branches.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  v.innerHTML = `
+    <div class="toolbar">
+      <input type="date" id="dashFrom" value="">
+      <input type="date" id="dashTo" value="">
+      <select id="dashBranch">${branchOpts}</select>
+      <button class="btn btn-gold" onclick="loadDashboard()">عرض</button>
+      <button class="btn btn-blue btn-sm" onclick="exportDashboard()">📤 تصدير CSV</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="val">${t.reports_count}</div><div class="lbl">عدد المحاضر</div></div>
+      <div class="stat-card"><div class="val">${Number(t.total_qty).toFixed(1)}</div><div class="lbl">إجمالي الكميات</div></div>
+      <div class="stat-card green"><div class="val">${Number(t.total_value).toFixed(2)}</div><div class="lbl">إجمالي قيمة الهالك (ريال)</div></div>
+      <div class="stat-card"><div class="val">${Number(t.total_cost || 0).toFixed(2)}</div><div class="lbl">قيمة الشراء التقديرية</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-box"><h4>📈 الهالك الشهري</h4><canvas id="chartMonthly"></canvas></div>
+      <div class="chart-box"><h4>🏢 الهالك حسب الفروع</h4><canvas id="chartBranch"></canvas></div>
+      <div class="chart-box"><h4>🗂️ توزيع أنواع الفاقد</h4><canvas id="chartType"></canvas></div>
+      <div class="chart-box"><h4>🧺 أكثر الأصناف هالكاً</h4><canvas id="chartItems"></canvas></div>
+    </div>`;
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch (e) {} });
+  charts = {};
+  const monthData = s.monthly.map(m => m.value);
+  charts.monthly = new Chart(document.getElementById('chartMonthly'), { type: 'bar',
+    data: { labels: s.monthly.map(m => m.month), datasets: [{ label: 'قيمة الهالك', data: monthData,
+      backgroundColor: '#d4a017', borderRadius: 6 }] },
+    options: { responsive: true, plugins: { legend: { display: false } } } });
+  charts.branch = new Chart(document.getElementById('chartBranch'), { type: 'doughnut',
+    data: { labels: s.byBranch.map(b => b.branch), datasets: [{ data: s.byBranch.map(b => b.value),
+      backgroundColor: ['#d4a017','#218838','#17a2b8','#e05767','#6f42c1','#fd7e14'] }] },
+    options: { responsive: true } });
+  charts.type = new Chart(document.getElementById('chartType'), { type: 'pie',
+    data: { labels: s.byType.map(t => t.type), datasets: [{ data: s.byType.map(t => t.value),
+      backgroundColor: ['#e05767','#17a2b8','#fd7e14','#6f42c1','#20c997'] }] },
+    options: { responsive: true } });
+  charts.items = new Chart(document.getElementById('chartItems'), { type: 'bar',
+    data: { labels: s.topItems.map(i => i.name), datasets: [{ label: 'الكمية', data: s.topItems.map(i => i.qty),
+      backgroundColor: '#218838', borderRadius: 6 }] },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } } });
+}
+
+function exportDashboard() {
+  const from = document.getElementById('dashFrom').value;
+  const to = document.getElementById('dashTo').value;
+  api('/api/stats?' + new URLSearchParams({ from, to })).then(s => {
+    const rows = [['المؤشر', 'القيمة']];
+    rows.push(['عدد المحاضر', s.totals.reports_count]);
+    rows.push(['إجمالي الكميات', s.totals.total_qty]);
+    rows.push(['إجمالي قيمة الهالك', s.totals.total_value]);
+    rows.push([]);
+    rows.push(['الشهر', 'قيمة الهالك']);
+    s.monthly.forEach(m => rows.push([m.month, m.value]));
+    rows.push([]);
+    rows.push(['الفرع', 'القيمة', 'عدد المحاضر']);
+    s.byBranch.forEach(b => rows.push([b.branch, b.value, b.count]));
+    rows.push([]);
+    rows.push(['نوع الفاقد', 'القيمة', 'الكمية']);
+    s.byType.forEach(t => rows.push([t.type, t.value, t.qty]));
+    const csv = '\uFEFF' + rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    downloadCsv(csv, 'Dashboard_Stats.csv');
+  }).catch(e => toast(e.message, true));
+}
+
+function downloadCsv(csv, name) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/* ================= FORM ================= */
+let formItems = [];
+let currentEditReportId = null;
+
+function initFormView() {
+  if (formInitDone) return;
+  formInitDone = true;
+  buildForm();
+}
+let formInitDone = false;
+
+function buildForm() {
+  const v = document.getElementById('viewForm');
+  const branchOpts = state.branches.map(b => `<option value="${b.id}" ${b.id === state.user.branch_id ? 'selected' : ''}>${esc(b.name)}</option>`).join('');
+  const datalist = state.items.map(i => `<option value="${esc(i.name)}"></option>`).join('');
+  v.innerHTML = `
+    <div class="voucher">
+      <div class="hdr">
+        <div class="company"><h1 id="fCompany">شركة مطاعم معصوب حليب</h1><h2 id="fCompanySub">لتقديم الوجبات</h2></div>
+        <div class="vtitle">📋 محضر هالك جديد</div>
+      </div>
+      <datalist id="itemList">${datalist}</datalist>
+      <div class="info-grid">
+        <div class="info-item"><span class="label">الفرع:</span><select id="fBranch">${branchOpts}</select></div>
+        <div class="info-item"><span class="label">رقم المحضر:</span><span class="serial-badge" id="fSerial">سيُعطى عند الحفظ</span></div>
+        <div class="info-item"><span class="label">التاريخ:</span><input type="date" id="fDate"></div>
+        <div class="info-item"><span class="label">المسؤول:</span><input type="text" id="fResponsible" placeholder="اسم المسؤول"></div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:10px;">
+        <table id="fTable">
+          <thead><tr><th>#</th><th>اسم الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th>نوع الفاقد</th><th>تاريخ الإنتاج</th><th>تاريخ الصلاحية</th><th>سبب الهالك</th><th>حذف</th></tr></thead>
+          <tbody id="fTableBody"></tbody>
+        </table>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-gold" onclick="fAddRow()">➕ إضافة صنف</button>
+        <button class="btn btn-green" onclick="fAddRow3()">➕ إضافة 3 أصناف</button>
+        <span class="muted" id="fRowCount" style="font-size:12px;align-self:center;">0 أصناف</span>
+      </div>
+      <div class="form-totals"><span>الإجمالي الكلي : <span id="fTotal">0.00</span> ريال</span></div>
+      <div class="notes-box"><strong>📝 ملاحظات :</strong><br>
+        <textarea id="fNotes">• تم إعداد هذا المحضر لتسجيل الأصناف الهالكة.
+• تم الفحص بحضور لجنة الجرد والتأكد من أسباب الهالك.</textarea></div>
+      <div class="sig-grid">
+        <div class="sig-item"><span class="role">📋 عضو لجنة الجرد</span><input type="text" placeholder="الاسم" id="fM1Name"><input type="text" placeholder="التوقيع" id="fM1Sig"></div>
+        <div class="sig-item"><span class="role">📋 عضو لجنة الجرد</span><input type="text" placeholder="الاسم" id="fM2Name"><input type="text" placeholder="التوقيع" id="fM2Sig"></div>
+        <div class="sig-item approved"><span class="role">✅ اعتماد مدير الفرع</span><input type="text" placeholder="الاسم" id="fMgrName"><input type="text" placeholder="التوقيع" id="fMgrSig"></div>
+      </div>
+      <div class="toolbar" style="margin-top:18px;justify-content:flex-end;">
+        <button class="btn btn-green" onclick="saveReport()">💾 حفظ المحضر</button>
+        <button class="btn btn-blue" onclick="generateFormPDF()">📄 PDF</button>
+        <button class="btn btn-red" onclick="fReset()">🔄 مسح النموذج</button>
+      </div>
+    </div>`;
+  document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+  const itemsInputs = v.querySelectorAll('#fTableBody');
+  formItems = [];
+  fAddRow();
+}
+
+function fAddRow() {
+  formItems.push({ item_name: '', unit: '_____', qty: 1, price: 0, waste_type: 'أخرى', prod_date: '', exp_date: '', reason: '' });
+  fRenderRows();
+}
+function fAddRow3() { for (let i = 0; i < 3; i++) fAddRow(); }
+function fRemoveRow(i) {
+  if (formItems.length <= 1) { toast('لا يمكن حذف آخر صنف', true); return; }
+  formItems.splice(i, 1); fRenderRows();
+}
+function fRenderRows() {
+  const tbody = document.getElementById('fTableBody');
+  tbody.innerHTML = '';
+  formItems.forEach((it, i) => {
+    const types = ['تحضير','طهي','تخزين','خدمة','انتهاء صلاحية','أخرى'];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td><input type="text" list="itemList" value="${esc(it.item_name)}" placeholder="اسم الصنف" oninput="onItemInput(${i},this.value)"></td>
+      <td><input type="text" value="${esc(it.unit)}" oninput="formItems[${i}].unit=this.value"></td>
+      <td><input type="number" min="0" step="0.5" value="${it.qty}" oninput="formItems[${i}].qty=parseFloat(this.value)||0;fCalc()"></td>
+      <td><input type="number" min="0" step="0.5" value="${it.price}" oninput="formItems[${i}].price=parseFloat(this.value)||0;fCalc()"></td>
+      <td><input type="number" readonly value="${(it.qty * it.price).toFixed(2)}" style="background:#f5ecc9;font-weight:700;"></td>
+      <td><select onchange="formItems[${i}].waste_type=this.value">${types.map(t => `<option ${t === it.waste_type ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
+      <td><input type="date" value="${esc(it.prod_date)}" oninput="formItems[${i}].prod_date=this.value"></td>
+      <td><input type="date" value="${esc(it.exp_date)}" oninput="formItems[${i}].exp_date=this.value"></td>
+      <td><input type="text" value="${esc(it.reason)}" placeholder="السبب" oninput="formItems[${i}].reason=this.value"></td>
+      <td><button class="btn btn-red btn-sm" onclick="fRemoveRow(${i})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('fRowCount').textContent = formItems.length + ' أصناف';
+  fCalc();
+}
+
+function onItemInput(index, value) {
+  formItems[index].item_name = value;
+  // Search for matching item in state.items
+  const match = state.items.find(i => i.name.toLowerCase() === value.toLowerCase());
+  if (match) {
+    formItems[index].item_id = match.id;
+    formItems[index].unit = match.unit || '';
+    formItems[index].price = match.default_price || 0;
+    fRenderRows();
+  } else {
+    formItems[index].item_id = null;
+  }
+  fCalc();
+}
+function fCalc() {
+  let total = 0;
+  const tbody = document.getElementById('fTableBody');
+  tbody.querySelectorAll('tr').forEach((tr, i) => {
+    if (!formItems[i]) return;
+    const inputs = tr.querySelectorAll('input');
+    const t = (formItems[i].qty * formItems[i].price);
+    inputs[4].value = t.toFixed(2);
+    total += t;
+  });
+  document.getElementById('fTotal').textContent = total.toFixed(2);
+}
+function fReset() {
+  if (!confirm('مسح كل بيانات النموذج الحالي؟')) return;
+  formItems = [];
+  fAddRow();
+  document.getElementById('fNotes').value = '';
+  ['fResponsible','fM1Name','fM1Sig','fM2Name','fM2Sig','fMgrName','fMgrSig'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fSerial').textContent = 'سيُعطى عند الحفظ';
+  currentEditReportId = null;
+  toast('تم مسح النموذج');
+}
+
+async function saveReport() {
+  const valid = formItems.filter(i => i.item_name && i.qty > 0);
+  if (!valid.length) return toast('أضف صنفاً واحداً على الأقل مع الكمية', true);
+  const payload = {
+    branch_id: document.getElementById('fBranch').value || null,
+    date: document.getElementById('fDate').value,
+    responsible: document.getElementById('fResponsible').value,
+    notes: document.getElementById('fNotes').value,
+    status: 'مسودة',
+    items: valid.map(it => ({
+      item_id: it.item_id || null,
+      item_name: it.item_name,
+      unit: it.unit,
+      qty: it.qty,
+      price: it.price,
+      waste_type: it.waste_type,
+      prod_date: it.prod_date,
+      exp_date: it.exp_date,
+      reason: it.reason
+    }))
+  };
+  try {
+    let data;
+    if (currentEditReportId) {
+      data = await api('/api/reports/' + currentEditReportId, { method: 'PUT', body: JSON.stringify(payload) });
+      toast('تم تحديث المحضر بنجاح');
+    } else {
+      data = await api('/api/reports', { method: 'POST', body: JSON.stringify(payload) });
+      document.getElementById('fSerial').textContent = data.serial;
+      toast('تم حفظ المحضر برقم ' + data.serial);
+    }
+    currentEditReportId = data.report.id;
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ================= FORM PDF ================= */
+async function generateFormPDF() {
+  const serial = currentEditReportId ? state._lastSerial || 'مؤقت' : 'مؤقت';
+  const v = document.getElementById('viewForm').querySelector('.voucher');
+  const loading = document.createElement('div');
+  loading.style.cssText = 'position:fixed;inset:0;background:rgba(50,36,5,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff;font-weight:700;';
+  loading.innerHTML = '<div class="spinner"></div>جاري إنشاء PDF...';
+  document.body.appendChild(loading);
+  try {
+    const canvas = await html2canvas(v, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const JsPDF = window.jspdf.jsPDF;
+    const pdf = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const pageW = pdf.internal.pageSize.getWidth(), pageH = pdf.internal.pageSize.getHeight();
+    const imgW = canvas.width / 96 * 25.4, imgH = canvas.height / 96 * 25.4;
+    const scale = Math.min((pageW - 8) / imgW, (pageH - 8) / imgH);
+    pdf.addImage(canvas.toDataURL('image/jpeg', .95), 'JPEG', (pageW - imgW * scale) / 2, (pageH - imgH * scale) / 2, imgW * scale, imgH * scale);
+    const name = safeName(currentEditReportId ? 'WasteReport' : 'WasteReportDraft', 'pdf');
+    pdf.save(name);
+  } catch (e) { toast('خطأ في إنشاء PDF: ' + e.message, true); }
+  loading.remove();
+}
+function safeName(prefix, ext) {
+  const d = new Date().toISOString().slice(0, 10).replace(/-/g, '-');
+  return prefix + '_' + d + '_' + Date.now().toString().slice(-6) + '.' + ext;
+}
+
+/* ================= REPORT PDF / PRINT ================= */
+function reportHTML(r, items) {
+  const totValue = items.reduce((s, it) => s + (Number(it.total) || 0), 0);
+  const rows = items.map((it, i) => `<tr>
+    <td>${i + 1}</td><td>${esc(it.item_name)}</td><td>${esc(it.unit)}</td><td>${it.qty}</td>
+    <td>${Number(it.price).toFixed(2)}</td><td>${Number(it.total).toFixed(2)}</td>
+    <td>${esc(it.waste_type)}</td><td>${esc(it.prod_date)}</td><td>${esc(it.exp_date)}</td><td>${esc(it.reason)}</td></tr>`).join('');
+  return `
+    <div class="voucher">
+      <div class="hdr">
+        <div class="brand">
+          <img src="logo.jpg" class="logo" alt="logo" />
+          <div class="company"><h1 id="pCompany">شركة مطاعم معصوب حليب</h1><h2>لتقديم الوجبات</h2></div>
+        </div>
+        <div class="vtitle">📋 محضر هالك</div>
+      </div>
+      <div class="info-grid">
+        <div class="info-item"><span class="label">رقم المحضر:</span><span class="serial-badge">${esc(r.serial)}</span></div>
+        <div class="info-item"><span class="label">الفرع:</span><b>${esc(r.branch_name || '—')}</b></div>
+        <div class="info-item"><span class="label">التاريخ:</span><b>${esc(r.date)}</b></div>
+        <div class="info-item"><span class="label">المسؤول:</span><b>${esc(r.responsible || '—')}</b></div>
+        <div class="info-item"><span class="label">الحالة:</span><b>${esc(r.status)}</b></div>
+        <div class="info-item"><span class="label">أنشأه:</span><b>${esc(r.creator_name || '—')}</b></div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:10px;"><table>
+        <thead><tr><th>#</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>النوع</th><th>الإنتاج</th><th>الصلاحية</th><th>السبب</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="10" style="color:#8a7a3a;">لا توجد أصناف</td></tr>'}</tbody>
+      </table></div>
+      <div class="form-totals"><span>الإجمالي الكلي : ${totValue.toFixed(2)} ريال</span></div>
+      <div class="notes-box"><strong>📝 ملاحظات :</strong><br>${esc(r.notes || 'لا توجد ملاحظات')}</div>
+      <div class="sig-grid">
+        <div class="sig-item"><span class="role">📋 عضو لجنة الجرد</span><div style="min-height:34px;"></div></div>
+        <div class="sig-item"><span class="role">📋 عضو لجنة الجرد</span><div style="min-height:34px;"></div></div>
+        <div class="sig-item approved"><span class="role">✅ اعتماد مدير الفرع</span><div style="min-height:34px;"></div></div>
+      </div>
+    </div>`;
+}
+
+function addLoading(msg) {
+  const loading = document.createElement('div');
+  loading.id = 'globalLoading';
+  loading.style.cssText = 'position:fixed;inset:0;background:rgba(50,36,5,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:#fff;font-weight:700;';
+  loading.innerHTML = '<div class="spinner"></div>' + msg;
+  document.body.appendChild(loading);
+  return loading;
+}
+
+async function exportReportPDF(id) {
+  const loading = addLoading('جاري إنشاء PDF...');
+  try {
+    const d = await api('/api/reports/' + id);
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1;';
+    holder.innerHTML = reportHTML(d.report, d.items);
+    document.body.appendChild(holder);
+    await Promise.all(Array.from(holder.querySelectorAll('img')).map(im => im.complete ? Promise.resolve() : new Promise(res => { im.onload = res; im.onerror = res; })));
+    await new Promise(r => setTimeout(r, 300));
+    const canvas = await html2canvas(holder.firstElementChild, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const JsPDF = window.jspdf.jsPDF;
+    const pdf = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const pageW = 210, pageH = 297;
+    const pxPerMm = canvas.width / pageW;
+    const sliceH = Math.max(1, Math.floor(pageH * pxPerMm));
+    const sliceCanvas = document.createElement('canvas');
+    sliceCanvas.width = canvas.width;
+    sliceCanvas.height = sliceH;
+    const sctx = sliceCanvas.getContext('2d');
+    let pages = 0;
+    for (let y = 0; y < canvas.height; y += sliceH) {
+      if (pages > 0) pdf.addPage();
+      const h = Math.min(sliceH, canvas.height - y);
+      sctx.clearRect(0, 0, canvas.width, sliceH);
+      sctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, sliceH);
+      pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pageW, pageH);
+      pages++;
+    }
+    pdf.save(safeName('WasteReport', 'pdf'));
+    holder.remove();
+  } catch (e) { toast('خطأ في إنشاء PDF: ' + e.message, true); }
+  loading.remove();
+}
+
+async function printReport(id) {
+  try {
+    const d = await api('/api/reports/' + id);
+    const old = document.getElementById('printArea');
+    if (old) old.remove();
+    const div = document.createElement('div');
+    div.id = 'printArea';
+    div.innerHTML = reportHTML(d.report, d.items);
+    document.body.appendChild(div);
+    Promise.all(Array.from(div.querySelectorAll('img')).map(im => im.complete ? Promise.resolve() : new Promise(res => { im.onload = res; im.onerror = res; }))).then(() => setTimeout(() => window.print(), 300));
+    setTimeout(() => { const el = document.getElementById('printArea'); if (el) el.remove(); }, 60000);
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ================= REPORTS ================= */
+async function loadReports() {
+  const v = document.getElementById('viewReports');
+  const branchOpts = '<option value="">كل الفروع</option>' + state.branches.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  const statusOpts = ['', 'مسودة', 'معتمد'].map(s => `<option value="${s}">${s || 'كل الحالات'}</option>`).join('');
+  v.innerHTML = `
+    <div class="toolbar">
+      <input type="text" id="repQ" placeholder="🔍 بحث برقم المحضر أو المسؤول...">
+      <select id="repBranch">${branchOpts}</select>
+      <input type="date" id="repFrom">
+      <input type="date" id="repTo">
+      <select id="repStatus">${statusOpts}</select>
+      <button class="btn btn-gold" onclick="loadReports()">عرض</button>
+    </div>
+    <div class="card"><div class="card-b" id="repList"><div class="loading"><div class="spinner"></div></div></div></div>`;
+  const params = new URLSearchParams();
+  const q = document.getElementById('repQ').value.trim();
+  const branch = document.getElementById('repBranch').value;
+  const from = document.getElementById('repFrom').value;
+  const to = document.getElementById('repTo').value;
+  const status = document.getElementById('repStatus').value;
+  if (q) params.set('q', q);
+  if (branch) params.set('branch', branch);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (status) params.set('status', status);
+  try {
+    const data = await api('/api/reports?' + params.toString());
+    renderReportList(v, data.reports);
+  } catch (e) { v.innerHTML = '<div class="loading">' + esc(e.message) + '</div>'; }
+}
+
+function renderReportList(v, reports) {
+  const box = document.getElementById('repList');
+  if (!reports.length) { box.innerHTML = '<div class="empty-state" style="text-align:center;padding:30px;color:#8a7a3a;">لا توجد محاضر مطابقة</div>'; return; }
+  const rows = reports.map(r => `
+    <tr>
+      <td><b>${esc(r.serial)}</b></td>
+      <td>${esc(r.branch_name || '—')}</td>
+      <td>${esc(r.date)}</td>
+      <td>${esc(r.responsible || '—')}</td>
+      <td>${r.item_count}</td>
+      <td>${Number(r.total_qty).toFixed(1)}</td>
+      <td><b>${Number(r.total_value).toFixed(2)}</b></td>
+      <td><span class="chip ${r.status === 'معتمد' ? 'chip-approved' : 'chip-draft'}">${esc(r.status)}</span></td>
+      <td>${esc(r.creator_name || '—')}</td>
+      <td>
+        ${hasPermission('reports', 'read') ? `<button class="btn btn-blue btn-sm" onclick="viewReport(${r.id})">👁</button>` : ''}
+        ${hasPermission('reports', 'export') ? `<button class="btn btn-blue btn-sm" onclick="exportReportPDF(${r.id})">📄</button>` : ''}
+        ${hasPermission('reports', 'export') ? `<button class="btn btn-gray btn-sm" onclick="printReport(${r.id})">🖨️</button>` : ''}
+        ${hasPermission('reports', 'update') ? `<button class="btn btn-gold btn-sm" onclick="editReport(${r.id})">✏️</button>` : ''}
+        ${hasPermission('reports', 'export') ? `<button class="btn btn-green btn-sm" onclick="downloadReportCsv(${r.id})">📥</button>` : ''}
+        ${hasPermission('reports', 'delete') ? `<button class="btn btn-red btn-sm" onclick="deleteReport(${r.id})">🗑</button>` : ''}
+      </td>
+    </tr>`).join('');
+  box.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>رقم المحضر</th><th>الفرع</th><th>التاريخ</th><th>المسؤول</th><th>الأصناف</th><th>الكمية</th><th>القيمة</th><th>الحالة</th><th>أنشأه</th><th>إجراءات</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+async function viewReport(id) {
+  try {
+    const d = await api('/api/reports/' + id);
+    const r = d.report;
+    const items = d.items.map((it, i) => `<tr><td>${i + 1}</td><td>${esc(it.item_name)}</td><td>${esc(it.unit)}</td><td>${it.qty}</td><td>${Number(it.price).toFixed(2)}</td><td>${Number(it.total).toFixed(2)}</td><td>${esc(it.waste_type)}</td><td>${esc(it.prod_date)}</td><td>${esc(it.exp_date)}</td><td>${esc(it.reason)}</td></tr>`).join('');
+    document.getElementById('viewReportBody').innerHTML = `
+      <div class="info-grid" style="margin-bottom:12px;">
+        <div class="info-item"><span class="label">رقم المحضر:</span><b>${esc(r.serial)}</b></div>
+        <div class="info-item"><span class="label">الفرع:</span><b>${esc(r.branch_name || '—')}</b></div>
+        <div class="info-item"><span class="label">التاريخ:</span><b>${esc(r.date)}</b></div>
+        <div class="info-item"><span class="label">المسؤول:</span><b>${esc(r.responsible || '—')}</b></div>
+        <div class="info-item"><span class="label">الحالة:</span><b>${esc(r.status)}</b></div>
+        <div class="info-item"><span class="label">أنشأه:</span><b>${esc(r.creator_name || '—')}</b></div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:10px;"><table><thead><tr><th>#</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th>النوع</th><th>الإنتاج</th><th>الصلاحية</th><th>السبب</th></tr></thead><tbody>${items || '<tr><td colspan="10" style="color:#8a7a3a;">لا توجد أصناف</td></tr>'}</tbody></table></div>
+      <div class="notes-box" style="font-size:12px;">${esc(r.notes || 'لا توجد ملاحظات')}</div>
+      <div class="toolbar" style="justify-content:flex-end;">
+        <button class="btn btn-blue" onclick="exportReportPDF(${r.id})">📄 PDF</button>
+        <button class="btn btn-gray" onclick="printReport(${r.id})">🖨️ طباعة</button>
+        <button class="btn btn-green" onclick="downloadReportCsv(${r.id})">📥 تصدير CSV</button>
+        <button class="btn btn-gold" onclick="closeModal('modalViewReport');editReport(${r.id})">✏️ تعديل</button>
+      </div>`;
+    openModal('modalViewReport');
+  } catch (e) { toast(e.message, true); }
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+async function editReport(id) {
+  try {
+    const d = await api('/api/reports/' + id);
+    currentEditReportId = id;
+    state._lastSerial = d.report.serial;
+    initFormView();
+    showPage('form');
+    document.getElementById('fSerial').textContent = d.report.serial;
+    document.getElementById('fBranch').value = d.report.branch_id || '';
+    document.getElementById('fDate').value = d.report.date;
+    document.getElementById('fResponsible').value = d.report.responsible || '';
+    document.getElementById('fNotes').value = d.report.notes || '';
+    formItems = d.items.map(it => ({ item_id: it.item_id, item_name: it.item_name, unit: it.unit, qty: it.qty, price: it.price, waste_type: it.waste_type, prod_date: it.prod_date, exp_date: it.exp_date, reason: it.reason }));
+    fRenderRows();
+    toast('وضع التعديل: ' + d.report.serial);
+  } catch (e) { toast(e.message, true); }
+}
+
+async function downloadReportCsv(id) {
+  try {
+    const res = await fetch('/api/reports/' + id + '/export', { headers: { 'Authorization': 'Bearer ' + state.token } });
+    if (!res.ok) throw new Error('تعذر التصدير');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    const cd = res.headers.get('Content-Disposition') || '';
+    const m = cd.match(/filename="([^"]+)"/);
+    a.download = m ? m[1] : 'WasteReport.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) { toast(e.message, true); }
+}
+
+async function deleteReport(id) {
+  if (!confirm('هل تريد حذف هذا المحضر نهائياً؟')) return;
+  try {
+    await api('/api/reports/' + id, { method: 'DELETE' });
+    toast('تم حذف المحضر');
+    loadReports();
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ================= ITEMS ================= */
+async function loadItems() {
+  const v = document.getElementById('viewItems');
+  v.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try {
+    const d = await api('/api/items/stats');
+    state.items = d.stats.map(s => ({ id: s.id, name: s.name, unit: s.unit, default_price: s.default_price }));
+    const rows = d.stats.map(i => `<tr><td>${esc(i.name)}</td><td>${esc(i.unit)}</td><td>${Number(i.default_price).toFixed(2)}</td>
+      <td>${i.report_count || 0}</td>
+      <td>${Number(i.total_qty || 0).toFixed(1)}</td>
+      <td><b>${Number(i.total_value || 0).toFixed(2)}</b></td>
+      <td>
+        ${hasPermission('items', 'update') ? `<button class="btn btn-gold btn-sm" onclick="openItemModal(${i.id})">✏️</button>` : ''}
+        ${hasPermission('items', 'delete') ? `<button class="btn btn-red btn-sm" onclick="deleteItem(${i.id})">🗑</button>` : ''}
+      </td></tr>`).join('');
+    v.innerHTML = `${hasPermission('items', 'create') ? `<div class="toolbar"><button class="btn btn-green" onclick="openItemModal()">➕ إضافة صنف</button></div>` : ''}
+      <div class="card"><div class="card-b"><div class="table-wrap"><table>
+      <thead><tr><th>اسم الصنف</th><th>الوحدة</th><th>السعر الافتراضي</th><th>عدد المحاضر</th><th>إجمالي الكمية</th><th>إجمالي القيمة</th><th>إجراءات</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div></div>`;
+  } catch (e) { v.innerHTML = '<div class="loading">' + esc(e.message) + '</div>'; }
+}
+
+function openItemModal(id) {
+  const item = id ? state.items.find(i => i.id === id) : null;
+  document.getElementById('itemModalTitle').textContent = item ? 'تعديل صنف' : 'إضافة صنف';
+  document.getElementById('itemModalBody').innerHTML = `
+    <input type="hidden" id="itemId" value="${item ? item.id : ''}">
+    <div class="info-grid">
+      <div class="info-item"><span class="label">اسم الصنف:</span><input type="text" id="itName" value="${item ? esc(item.name) : ''}"></div>
+      <div class="info-item"><span class="label">الوحدة:</span><input type="text" id="itUnit" value="${item ? esc(item.unit) : ''}"></div>
+      <div class="info-item"><span class="label">السعر الافتراضي:</span><input type="number" min="0" step="0.5" id="itPrice" value="${item ? item.default_price : ''}"></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end;"><button class="btn btn-green" onclick="saveItem()">💾 حفظ</button></div>`;
+  openModal('modalItem');
+}
+async function saveItem() {
+  const id = document.getElementById('itemId').value;
+  const body = { name: document.getElementById('itName').value, unit: document.getElementById('itUnit').value, default_price: document.getElementById('itPrice').value };
+  try {
+    if (id) await api('/api/items/' + id, { method: 'PUT', body: JSON.stringify(body) });
+    else await api('/api/items', { method: 'POST', body: JSON.stringify(body) });
+    closeModal('modalItem'); toast('تم حفظ الصنف'); loadItems();
+  } catch (e) { toast(e.message, true); }
+}
+async function deleteItem(id) {
+  if (!confirm('حذف الصنف؟')) return;
+  try { await api('/api/items/' + id, { method: 'DELETE' }); toast('تم الحذف'); loadItems(); }
+  catch (e) { toast(e.message, true); }
+}
+
+/* ================= BRANCHES ================= */
+async function loadBranches() {
+  const v = document.getElementById('viewBranches');
+  v.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try {
+    const d = await api('/api/branches');
+    state.branches = d.branches;
+    const rows = d.branches.map(b => `<tr><td>${esc(b.name)}</td><td>${esc(b.address || '—')}</td><td>${esc(b.created_at)}</td>
+      <td>
+        ${hasPermission('branches', 'update') ? `<button class="btn btn-gold btn-sm" onclick="openBranchModal(${b.id})">✏️</button>` : ''}
+        ${hasPermission('branches', 'delete') ? `<button class="btn btn-red btn-sm" onclick="deleteBranch(${b.id})">🗑</button>` : ''}
+      </td></tr>`).join('');
+    v.innerHTML = `${hasPermission('branches', 'create') ? `<div class="toolbar"><button class="btn btn-green" onclick="openBranchModal()">➕ إضافة فرع</button></div>` : ''}
+      <div class="card"><div class="card-b"><div class="table-wrap"><table>
+      <thead><tr><th>اسم الفرع</th><th>العنوان</th><th>تاريخ الإنشاء</th><th>إجراءات</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div></div>`;
+  } catch (e) { v.innerHTML = '<div class="loading">' + esc(e.message) + '</div>'; }
+}
+function openBranchModal(id) {
+  const b = id ? state.branches.find(x => x.id === id) : null;
+  document.getElementById('branchModalTitle').textContent = b ? 'تعديل فرع' : 'إضافة فرع';
+  document.getElementById('branchModalBody').innerHTML = `
+    <input type="hidden" id="brId" value="${b ? b.id : ''}">
+    <div class="info-grid">
+      <div class="info-item"><span class="label">اسم الفرع:</span><input type="text" id="brName" value="${b ? esc(b.name) : ''}"></div>
+      <div class="info-item"><span class="label">العنوان:</span><input type="text" id="brAddr" value="${b ? esc(b.address) : ''}"></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end;"><button class="btn btn-green" onclick="saveBranch()">💾 حفظ</button></div>`;
+  openModal('modalBranch');
+}
+async function saveBranch() {
+  const id = document.getElementById('brId').value;
+  const body = { name: document.getElementById('brName').value, address: document.getElementById('brAddr').value };
+  try {
+    if (id) await api('/api/branches/' + id, { method: 'PUT', body: JSON.stringify(body) });
+    else await api('/api/branches', { method: 'POST', body: JSON.stringify(body) });
+    closeModal('modalBranch'); toast('تم الحفظ'); await loadBranches(); await refreshShared();
+  } catch (e) { toast(e.message, true); }
+}
+async function deleteBranch(id) {
+  if (!confirm('حذف الفرع؟ ستُفصل محاضره عن الفرع.')) return;
+  try { await api('/api/branches/' + id, { method: 'DELETE' }); toast('تم الحذف'); await loadBranches(); await refreshShared(); }
+  catch (e) { toast(e.message, true); }
+}
+
+/* ================= USERS ================= */
+async function loadUsers() {
+  const v = document.getElementById('viewUsers');
+  v.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try {
+    const d = await api('/api/users');
+    const branchOpts = '<option value="">بدون فرع</option>' + state.branches.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+    const rows = d.users.map(u => `<tr><td>${esc(u.name)}</td><td>${esc(u.username)}</td>
+      <td><span class="chip ${u.role === 'admin' ? 'chip-approved' : 'chip-draft'}">${ROLE_LABEL[u.role] || u.role}</span></td>
+      <td>${esc(u.branch_name || '—')}</td>
+      <td>
+        ${hasPermission('users', 'update') ? `<button class="btn btn-gold btn-sm" onclick="openUserModal(${u.id}, '${esc(u.username)}', '${esc(u.name)}', '${u.role}', ${u.branch_id || 'null'})">✏️</button>` : ''}
+        ${hasPermission('users', 'delete') && u.id !== state.user.id ? `<button class="btn btn-red btn-sm" onclick="deleteUser(${u.id})">🗑</button>` : ''}
+      </td></tr>`).join('');
+    v.innerHTML = `${hasPermission('users', 'create') ? `<div class="toolbar"><button class="btn btn-green" onclick="openUserModal()">➕ إضافة مستخدم</button></div>` : ''}
+      <div class="card"><div class="card-b"><div class="table-wrap"><table>
+      <thead><tr><th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>الفرع</th><th>إجراءات</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div></div>
+      <div class="hidden" id="userBranchOpts">${branchOpts}</div>`;
+  } catch (e) { v.innerHTML = '<div class="loading">' + esc(e.message) + '</div>'; }
+}
+function openUserModal(id, username, name, role, branchId) {
+  const branchOpts = document.getElementById('userBranchOpts').innerHTML;
+  const roleOpts = [['employee','موظف'],['manager','مدير فرع'],['admin','مدير النظام']]
+    .map(r => `<option value="${r[0]}" ${(role || 'employee') === r[0] ? 'selected' : ''}>${r[1]}</option>`).join('');
+  document.getElementById('userModalTitle').textContent = id ? 'تعديل مستخدم' : 'إضافة مستخدم';
+  document.getElementById('userModalBody').innerHTML = `
+    <input type="hidden" id="usrId" value="${id || ''}">
+    <div class="info-grid">
+      <div class="info-item"><span class="label">الاسم:</span><input type="text" id="usName" value="${name ? esc(name) : ''}"></div>
+      <div class="info-item"><span class="label">اسم المستخدم:</span><input type="text" id="usUsername" value="${username ? esc(username) : ''}" ${id ? 'readonly' : ''}></div>
+      <div class="info-item"><span class="label">الدور:</span><select id="usRole">${roleOpts}</select></div>
+      <div class="info-item"><span class="label">الفرع:</span><select id="usBranch">${branchOpts}</select></div>
+      <div class="info-item"><span class="label">كلمة المرور ${id ? '(جديدة)' : ''}:</span><input type="password" id="usPass" placeholder="${id ? 'اتركها فارغة للإبقاء' : 'كلمة المرور'}"></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end;"><button class="btn btn-green" onclick="saveUser()">💾 حفظ</button></div>`;
+  if (branchId && document.getElementById('usBranch')) document.getElementById('usBranch').value = branchId;
+  openModal('modalUser');
+}
+async function saveUser() {
+  const id = document.getElementById('usrId').value;
+  const body = {
+    name: document.getElementById('usName').value,
+    username: document.getElementById('usUsername').value,
+    role: document.getElementById('usRole').value,
+    branch_id: document.getElementById('usBranch').value || null,
+    password: document.getElementById('usPass').value
+  };
+  if (!id && !body.password) return toast('كلمة المرور مطلوبة', true);
+  try {
+    if (id) {
+      const b = { name: body.name, role: body.role, branch_id: body.branch_id };
+      if (body.password) b.password = body.password;
+      await api('/api/users/' + id, { method: 'PUT', body: JSON.stringify(b) });
+    } else await api('/api/users', { method: 'POST', body: JSON.stringify(body) });
+    closeModal('modalUser'); toast('تم الحفظ'); loadUsers();
+  } catch (e) { toast(e.message, true); }
+}
+async function deleteUser(id) {
+  if (!confirm('حذف المستخدم؟')) return;
+  try { await api('/api/users/' + id, { method: 'DELETE' }); toast('تم الحذف'); loadUsers(); }
+  catch (e) { toast(e.message, true); }
+}
+function openChangePass() {
+  document.getElementById('modalUser').classList.add('active');
+  document.getElementById('userModalTitle').textContent = 'تغيير كلمة المرور';
+  document.getElementById('userModalBody').innerHTML = `
+    <div class="info-grid">
+      <div class="info-item"><span class="label">كلمة المرور الحالية:</span><input type="password" id="cpCur"></div>
+      <div class="info-item"><span class="label">كلمة المرور الجديدة:</span><input type="password" id="cpNext"></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end;"><button class="btn btn-green" onclick="saveChangePass()">💾 حفظ</button></div>`;
+}
+async function saveChangePass() {
+  try {
+    await api('/api/me/password', { method: 'PUT', body: JSON.stringify({ current: document.getElementById('cpCur').value, next: document.getElementById('cpNext').value }) });
+    closeModal('modalUser'); toast('تم تغيير كلمة المرور');
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ================= PERMISSIONS ================= */
+const MODULE_LABELS = {
+  dashboard: 'لوحة التحكم',
+  reports: 'المحاضر',
+  items: 'الأصناف',
+  branches: 'الفروع',
+  users: 'المستخدمين',
+  settings: 'الإعدادات',
+  permissions: 'الصلاحيات'
+};
+const ACTION_LABELS = {
+  view: 'عرض',
+  create: 'إضافة',
+  read: 'قراءة',
+  update: 'تعديل',
+  delete: 'حذف',
+  export: 'تصدير'
+};
+
+async function loadPermissions() {
+  const v = document.getElementById('viewPermissions');
+  v.innerHTML = '<div class="loading"><div class="spinner"></div>جاري تحميل الصلاحيات...</div>';
+  try {
+    const data = await api('/api/permissions');
+    renderPermissions(v, data.permissions);
+  } catch (e) { v.innerHTML = '<div class="loading">' + esc(e.message) + '</div>'; }
+}
+
+function renderPermissions(v, permissions) {
+  const roles = ['admin', 'manager', 'employee'];
+  const modules = Object.keys(MODULE_LABELS);
+  const actions = ['view', 'create', 'read', 'update', 'delete', 'export'];
+
+  let html = '<div class="card"><div class="card-h"><h3>🔐 إدارة الصلاحيات حسب الدور</h3></div><div class="card-b">';
+  html += '<div class="table-wrap"><table><thead><tr><th>الوحدة</th><th>الإجراء</th>';
+  roles.forEach(r => html += `<th>${ROLE_LABEL[r]}</th>`);
+  html += '</tr></thead><tbody>';
+
+  modules.forEach(mod => {
+    actions.forEach(act => {
+      const relevant = (mod === 'dashboard' && act === 'view') ||
+                       (mod === 'reports' && ['create', 'read', 'update', 'delete', 'export'].includes(act)) ||
+                       (mod === 'items' && ['create', 'read', 'update', 'delete'].includes(act)) ||
+                       (mod === 'branches' && ['create', 'read', 'update', 'delete'].includes(act)) ||
+                       (mod === 'users' && ['create', 'read', 'update', 'delete'].includes(act)) ||
+                       (mod === 'settings' && ['read', 'update'].includes(act)) ||
+                       (mod === 'permissions' && ['read', 'update'].includes(act));
+      if (!relevant) return;
+
+      html += `<tr><td><b>${MODULE_LABELS[mod]}</b></td><td>${ACTION_LABELS[act]}</td>`;
+      roles.forEach(r => {
+        const checked = permissions[r]?.[mod]?.[act] ? 'checked' : '';
+        html += `<td><label style="cursor:pointer;"><input type="checkbox" ${checked} onchange="togglePerm('${r}','${mod}','${act}',this.checked)" style="width:20px;height:20px;cursor:pointer;"> مسموح</label></td>`;
+      });
+      html += '</tr>';
+    });
+  });
+
+  html += '</tbody></table></div>';
+  html += '<div class="toolbar" style="margin-top:16px;justify-content:flex-end;">';
+  html += '<button class="btn btn-green" onclick="saveAllPermissions()">💾 حفظ جميع التغييرات</button>';
+  html += '</div>';
+  html += '</div></div>';
+  v.innerHTML = html;
+}
+
+let pendingPerms = {};
+
+function togglePerm(role, mod, act, allowed) {
+  if (!pendingPerms[role]) pendingPerms[role] = {};
+  if (!pendingPerms[role][mod]) pendingPerms[role][mod] = {};
+  pendingPerms[role][mod][act] = allowed;
+}
+
+async function saveAllPermissions() {
+  if (!Object.keys(pendingPerms).length) {
+    toast('لم يتم تغيير أي صلاحية');
+    return;
+  }
+  try {
+    for (const [role, modules] of Object.entries(pendingPerms)) {
+      await api('/api/permissions/' + role, { method: 'PUT', body: JSON.stringify({ permissions: modules }) });
+    }
+    pendingPerms = {};
+    toast('تم حفظ الصلاحيات بنجاح');
+    loadPermissions();
+    // Refresh current user permissions
+    const me = await api('/api/me');
+    state.user = me.user;
+    state.permissions = me.user.permissions || {};
+    buildNav();
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ================= SETTINGS ================= */
+async function loadSettings() {
+  const v = document.getElementById('viewSettings');
+  v.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  try {
+    const d = await api('/api/settings');
+    const s = d.settings;
+    v.innerHTML = `
+      <div class="card" style="max-width:620px;margin:auto;">
+        <div class="card-h"><h3>⚙️ إعدادات النظام</h3></div>
+        <div class="card-b">
+          <div class="info-grid">
+            <div class="info-item"><span class="label">اسم الشركة:</span><input type="text" id="setCompany" value="${esc(s.company_name || 'شركة مطاعم معصوب حليب')}" ${!hasPermission('settings', 'update') ? 'disabled' : ''}></div>
+            <div class="info-item"><span class="label">الوصف:</span><input type="text" id="setCompanySub" value="${esc(s.company_subtitle || 'لتقديم الوجبات')}" ${!hasPermission('settings', 'update') ? 'disabled' : ''}></div>
+          </div>
+          ${hasPermission('settings', 'update') ? `
+          <div class="toolbar" style="justify-content:flex-end;">
+            <button class="btn btn-green" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+          </div>` : ''}
+        </div>
+      </div>`;
+  } catch (e) { v.innerHTML = '<div class="loading">' + esc(e.message) + '</div>'; }
+}
+async function saveSettings() {
+  try {
+    await api('/api/settings', { method: 'PUT', body: JSON.stringify({
+      company_name: document.getElementById('setCompany').value,
+      company_subtitle: document.getElementById('setCompanySub').value
+    }) });
+    document.getElementById('sideCompany').textContent = document.getElementById('setCompany').value;
+    toast('تم حفظ الإعدادات');
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ================= SHARED REFRESH ================= */
+async function refreshShared() {
+  try {
+    if (hasPermission('branches', 'read')) {
+      const b = await api('/api/branches');
+      state.branches = b.branches;
+    }
+    if (hasPermission('items', 'read')) {
+      const i = await api('/api/items');
+      state.items = i.items;
+    }
+    if (currentPage === 'form') { formInitDone = false; initFormView(); }
+  } catch (e) {}
+}
+
+/* ================= INIT ================= */
+window.addEventListener('keydown', e => { if (e.key === 'Enter' && document.getElementById('loginView').style.display !== 'none') doLogin(); });
+if (state.token) {
+  api('/api/me').then(d => { state.user = d.user; enterApp(); })
+    .catch(() => { state.token = null; localStorage.removeItem('wasteToken'); });
+}
+(async () => {
+  if (!state.token) return;
+  try {
+    const b = await api('/api/branches'); state.branches = b.branches;
+    const i = await api('/api/items'); state.items = i.items;
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

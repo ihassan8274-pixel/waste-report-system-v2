@@ -1,0 +1,14 @@
+services:
+  waste-report:
+    build: .
+    container_name: waste-report-system
+    ports:
+      - "3000:3000"
+    environment:
+      - DATA_DIR=/data
+    volumes:
+      - waste-data:/data
+    restart: unless-stopped
+
+volumes:
+  waste-data:
