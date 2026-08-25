@@ -9,9 +9,7 @@ COPY server.js database.js ./
 COPY public ./public
 
 ENV NODE_ENV=production
-ENV DATA_DIR=/data
-
-VOLUME /data
+ENV DATA_DIR=/app/data
 
 EXPOSE 3000
 
